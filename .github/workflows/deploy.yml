@@ -1,0 +1,46 @@
+name: Deploy to AWS Lambda
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt -t package/ --platform manylinux2014_x86_64 --only-binary=:all:
+          cp bot.py quiz.py extractor.py lambda_handler.py package/
+
+      - name: Zip package
+        run: |
+          cd package && zip -r ../deployment.zip . && cd ..
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp deployment.zip s3://study-assistant-bot-code/deployment.zip
+
+      - name: Update Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name study-assistant-bot \
+            --s3-bucket study-assistant-bot-code \
+            --s3-key deployment.zip
