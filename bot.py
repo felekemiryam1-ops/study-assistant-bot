@@ -21,8 +21,8 @@ def get_token():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Hi! I am your Study Assistant bot.\n\nSend me a PDF, PowerPoint or Word file and I will generate 10 quiz questions from it!"
-    )
+        "Hi! I am your Study Assistant bot.\n\nSend me a PDF, PowerPoint or Word file and I will generate 10 quiz questions from it!\n\nType /difficulty to choose Easy, Medium or Hard questions."
+ )
 
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
