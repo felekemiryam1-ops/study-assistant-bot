@@ -207,8 +207,8 @@ def handler(event, context):
                         ExpressionAttributeValues={
                             ':w': 'medium_confirm',
                             ':t': total_score,
-                            ':f': session.get('file_id', ''),
-                            ':n': session.get('file_name', '')
+                            ':f': session.get('file_id', session.get('saved_file_id', '')),
+                            ':n': session.get('file_name', session.get('saved_file_name', ''))
                         }
                     )
                 elif difficulty == 'Medium':
