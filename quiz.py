@@ -4,6 +4,7 @@ import json
 
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
+
 def generate_questions(text: str, difficulty: str = "Easy", language: str = "English", previous_questions: str = "[]") -> list:
     if difficulty == "Easy":
         difficulty_instruction = "Generate EASY questions. Focus on basic facts. Questions should be straightforward."
@@ -24,8 +25,9 @@ Avoid overly formal or academic Amharic. Use everyday spoken Amharic."""
     try:
         prev_list = json.loads(previous_questions)
         if prev_list:
-            prev_topics = [q.get('question', '')[:100] for q in prev_list]
-            avoid_instruction = f"\n\nIMPORTANT: Do NOT repeat or reuse any of these previous questions. Generate completely NEW and DIFFERENT questions that cover other aspects of the text:\n" + "\n".join([f"- {t}" for t in prev_topics[:10]])
+            prev_topics = [q.get('question', '')[:80] for q in prev_list[:10]]
+            avoid_instruction = f"\n\nIMPORTANT: Generate completely NEW and DIFFERENT questions. Do NOT repeat these topics:\n" + \
+                "\n".join([f"- {t}" for t in prev_topics])
         else:
             avoid_instruction = ""
     except:
@@ -34,18 +36,18 @@ Avoid overly formal or academic Amharic. Use everyday spoken Amharic."""
     prompt = f"""You are a friendly study assistant. Based on the following text, generate 10 multiple choice questions.
 
 Difficulty: {difficulty_instruction}
-Language instructions: {language_instruction}{avoid_instruction}
+Language: {language_instruction}{avoid_instruction}
 
-For each question use this EXACT format:
+Use this EXACT format for each question:
 Q: question here
 A) option one
 B) option two
 C) option three
 D) option four
 Answer: A
-Explanation: explain why the answer is correct based on the text
+Explanation: explain why the answer is correct
 
-Separate each question with a blank line.
+Separate each question with one blank line.
 
 Text:
 {text[:3000]}"""
@@ -57,7 +59,9 @@ Text:
     )
 
     raw = message.content[0].text
+    print(f"Raw response preview: {raw[:200]}")
     return parse_questions(raw)
+
 
 def generate_flashcards(text: str, language: str = "English") -> list:
     if language == "Amharic":
@@ -71,13 +75,13 @@ Avoid overly formal Amharic. Use everyday spoken Amharic."""
 
     prompt = f"""You are a friendly study assistant. Based on the following text, generate 10 flashcards.
 
-Language instructions: {language_instruction}
+Language: {language_instruction}
 
-For each flashcard use this EXACT format:
+Use this EXACT format for each flashcard:
 CONCEPT: concept name here
 EXPLANATION: detailed explanation here
 
-Separate each flashcard with a blank line.
+Separate each flashcard with one blank line.
 
 Text:
 {text[:3000]}"""
@@ -91,34 +95,60 @@ Text:
     raw = message.content[0].text
     return parse_flashcards(raw)
 
+
 def parse_questions(raw: str) -> list:
     questions = []
     blocks = raw.strip().split("\n\n")
 
     for block in blocks:
-        lines = block.strip().split("\n")
-        if len(lines) >= 7:
-            question = {
-                "question": lines[0].replace("Q: ", ""),
-                "options": lines[1:5],
-                "answer": lines[5].replace("Answer: ", "").strip(),
-                "explanation": lines[6].replace("Explanation: ", "").strip()
-            }
-            questions.append(question)
+        lines = [l.strip() for l in block.strip().split("\n") if l.strip()]
+
+        question_line = None
+        options = []
+        answer_line = None
+        explanation_line = None
+
+        for line in lines:
+            if line.startswith("Q:"):
+                question_line = line.replace("Q:", "").strip()
+            elif line.startswith("A)") or line.startswith("B)") or line.startswith("C)") or line.startswith("D)"):
+                options.append(line)
+            elif line.startswith("Answer:"):
+                answer_line = line.replace("Answer:", "").strip()
+            elif line.startswith("Explanation:"):
+                explanation_line = line.replace("Explanation:", "").strip()
+
+        if question_line and len(options) == 4 and answer_line and explanation_line:
+            questions.append({
+                "question": question_line,
+                "options": options,
+                "answer": answer_line[0] if answer_line else "A",
+                "explanation": explanation_line
+            })
 
     return questions
+
 
 def parse_flashcards(raw: str) -> list:
     flashcards = []
     blocks = raw.strip().split("\n\n")
 
     for block in blocks:
-        lines = block.strip().split("\n")
-        if len(lines) >= 2:
-            flashcard = {
-                "concept": lines[0].replace("CONCEPT: ", "").strip(),
-                "explanation": lines[1].replace("EXPLANATION: ", "").strip()
-            }
-            flashcards.append(flashcard)
+        lines = [l.strip() for l in block.strip().split("\n") if l.strip()]
+
+        concept_line = None
+        explanation_line = None
+
+        for line in lines:
+            if line.startswith("CONCEPT:"):
+                concept_line = line.replace("CONCEPT:", "").strip()
+            elif line.startswith("EXPLANATION:"):
+                explanation_line = line.replace("EXPLANATION:", "").strip()
+
+        if concept_line and explanation_line:
+            flashcards.append({
+                "concept": concept_line,
+                "explanation": explanation_line
+            })
 
     return flashcards
