@@ -7,11 +7,29 @@ client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 def generate_questions(text: str, difficulty: str = "Easy", language: str = "English", previous_questions: str = "[]") -> list:
     if difficulty == "Easy":
-        difficulty_instruction = "Generate EASY questions. Focus on basic facts. Questions should be straightforward."
+        difficulty_instruction = """Generate EASY questions.
+- Focus on basic facts directly stated in the text
+- Questions should have one obviously correct answer
+- Wrong options should be clearly different from the correct answer
+- Keep questions and answers SHORT and simple"""
+
     elif difficulty == "Hard":
-        difficulty_instruction = "Generate HARD questions. Focus on deep understanding and analysis. Questions should be very challenging."
+        difficulty_instruction = """Generate HARD and TRICKY questions.
+- Do NOT make questions longer — make them TRICKIER
+- Use confusing or similar-looking answer options
+- Ask about exceptions, edge cases, or things easily confused
+- Test whether the student truly understands, not just memorized
+- Wrong options should be plausible and tempting
+- Questions should require thinking, not just recalling facts
+- Example: instead of "What is X?" ask "Which of the following is NOT true about X?"
+- Keep questions SHORT but make the options tricky"""
+
     else:
-        difficulty_instruction = "Generate MEDIUM difficulty questions. Mix of straightforward and analytical questions."
+        difficulty_instruction = """Generate MEDIUM difficulty questions.
+- Mix of factual recall and concept understanding
+- Some questions should require connecting two ideas from the text
+- Wrong options should be somewhat plausible
+- Keep questions clear and concise"""
 
     if language == "Amharic":
         language_instruction = """Generate everything in Amharic (አማርኛ). 
@@ -33,12 +51,14 @@ Avoid overly formal or academic Amharic. Use everyday spoken Amharic."""
     except:
         avoid_instruction = ""
 
-    prompt = f"""You are a friendly study assistant. Based on the following text, generate 10 multiple choice questions.
+    prompt = f"""You are a friendly study assistant. Based on the following text, generate exactly 10 multiple choice questions.
 
-Difficulty: {difficulty_instruction}
+Difficulty instructions:
+{difficulty_instruction}
+
 Language: {language_instruction}{avoid_instruction}
 
-Use this EXACT format for each question:
+Use this EXACT format for EVERY question — no exceptions:
 Q: question here
 A) option one
 B) option two
@@ -47,7 +67,8 @@ D) option four
 Answer: A
 Explanation: explain why the answer is correct
 
-Separate each question with one blank line.
+Separate each question with exactly one blank line.
+You MUST generate exactly 10 questions. No more, no less.
 
 Text:
 {text[:3000]}"""
