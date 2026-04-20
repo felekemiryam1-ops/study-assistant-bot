@@ -65,7 +65,7 @@ def handler(event, context):
                 return {"statusCode": 200, "body": "OK"}
 
             questions = json.loads(session['questions'])
-            current = int(session['current'])
+            current = int(session.get('question_current', 0))
             score = int(session['score'])
             question = questions[current]
             correct = question["answer"]
@@ -86,7 +86,7 @@ def handler(event, context):
             else:
                 table.update_item(
                     Key={'chat_id': chat_id},
-                    UpdateExpression='SET current = :c, score = :s',
+                   UpdateExpression='SET question_current = :c, score = :s',
                     ExpressionAttributeValues={':c': current, ':s': score}
                 )
                 next_question = questions[current]

@@ -73,12 +73,12 @@ def handler(event, context):
                     token, chat_id, "Sorry I could not generate questions. Please try another file.")
                 continue
 
-            table.put_item(Item={
-                'chat_id': chat_id,
-                'questions': json.dumps(questions),
-                'current': 0,
-                'score': 0
-            })
+         table.put_item(Item={
+        'chat_id': chat_id,
+    'questions': json.dumps(questions),
+           'question_current': 0,
+    'score': 0
+         })
             print("Session saved to DynamoDB")
 
             question = questions[0]
