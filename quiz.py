@@ -1,10 +1,10 @@
 import os
 import anthropic
+import json
 
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-
-def generate_questions(text: str, difficulty: str = "Easy", language: str = "English") -> list:
+def generate_questions(text: str, difficulty: str = "Easy", language: str = "English", previous_questions: str = "[]") -> list:
     if difficulty == "Easy":
         difficulty_instruction = "Generate EASY questions. Focus on basic facts. Questions should be straightforward."
     elif difficulty == "Hard":
@@ -21,10 +21,20 @@ Avoid overly formal or academic Amharic. Use everyday spoken Amharic."""
     else:
         language_instruction = f"Generate everything in {language}."
 
+    try:
+        prev_list = json.loads(previous_questions)
+        if prev_list:
+            prev_topics = [q.get('question', '')[:100] for q in prev_list]
+            avoid_instruction = f"\n\nIMPORTANT: Do NOT repeat or reuse any of these previous questions. Generate completely NEW and DIFFERENT questions that cover other aspects of the text:\n" + "\n".join([f"- {t}" for t in prev_topics[:10]])
+        else:
+            avoid_instruction = ""
+    except:
+        avoid_instruction = ""
+
     prompt = f"""You are a friendly study assistant. Based on the following text, generate 10 multiple choice questions.
 
 Difficulty: {difficulty_instruction}
-Language instructions: {language_instruction}
+Language instructions: {language_instruction}{avoid_instruction}
 
 For each question use this EXACT format:
 Q: question here
@@ -48,7 +58,6 @@ Text:
 
     raw = message.content[0].text
     return parse_questions(raw)
-
 
 def generate_flashcards(text: str, language: str = "English") -> list:
     if language == "Amharic":
@@ -82,7 +91,6 @@ Text:
     raw = message.content[0].text
     return parse_flashcards(raw)
 
-
 def parse_questions(raw: str) -> list:
     questions = []
     blocks = raw.strip().split("\n\n")
@@ -99,7 +107,6 @@ def parse_questions(raw: str) -> list:
             questions.append(question)
 
     return questions
-
 
 def parse_flashcards(raw: str) -> list:
     flashcards = []

@@ -43,6 +43,7 @@ def handler(event, context):
             language = body.get("language", "English")
             mode = body.get("mode", "quiz")
             total_score = body.get("total_score", 0)
+            previous_questions = body.get("previous_questions", "[]")
 
             print(f"Processing for chat_id: {chat_id}, difficulty: {difficulty}, language: {language}, mode: {mode}")
 
@@ -86,7 +87,7 @@ def handler(event, context):
             else:
                 send_message(token, chat_id, f"Generating {difficulty} questions in {language}...")
                 from quiz import generate_questions
-                questions = generate_questions(text_content, difficulty, language)
+                questions = generate_questions(text_content, difficulty, language, previous_questions)
                 print(f"Generated {len(questions)} questions")
 
                 if not questions:
@@ -103,7 +104,8 @@ def handler(event, context):
                     'mode': 'quiz',
                     'file_id': file_id,
                     'file_name': file_name,
-                    'total_score': total_score
+                    'total_score': total_score,
+                    'previous_questions': previous_questions
                 })
                 print("Session saved to DynamoDB")
 

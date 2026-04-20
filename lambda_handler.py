@@ -18,8 +18,7 @@ def send_message(token, chat_id, text, reply_markup=None):
     if reply_markup:
         payload["reply_markup"] = reply_markup
     data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers={
-                                 "Content-Type": "application/json"})
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     urllib.request.urlopen(req)
 
 
@@ -38,7 +37,7 @@ def handler(event, context):
 
         if text == "/start":
             send_message(token, chat_id,
-                         "Hi! I am your Study Assistant bot.\n\nSend me a PDF, PowerPoint or Word file and I will generate 10 quiz questions from it!\n\nCommands:\n/difficulty - choose difficulty level\n/language - choose language\n/flashcard - flashcard mode")
+                "Hi! I am your Study Assistant bot.\n\nSend me a PDF, PowerPoint or Word file and I will generate 10 quiz questions from it!\n\nCommands:\n/difficulty - choose difficulty level\n/language - choose language\n/flashcard - flashcard mode")
 
         elif text == "/difficulty":
             keyboard = {
@@ -48,8 +47,7 @@ def handler(event, context):
                 "one_time_keyboard": True,
                 "resize_keyboard": True
             }
-            send_message(token, chat_id, "Choose your difficulty level:",
-                         reply_markup=json.dumps(keyboard))
+            send_message(token, chat_id, "Choose your difficulty level:", reply_markup=json.dumps(keyboard))
 
         elif text == "/language":
             keyboard = {
@@ -59,8 +57,7 @@ def handler(event, context):
                 "one_time_keyboard": True,
                 "resize_keyboard": True
             }
-            send_message(token, chat_id, "Choose your language:",
-                         reply_markup=json.dumps(keyboard))
+            send_message(token, chat_id, "Choose your language:", reply_markup=json.dumps(keyboard))
 
         elif text == "/flashcard":
             table.update_item(
@@ -68,8 +65,7 @@ def handler(event, context):
                 UpdateExpression='SET mode = :m',
                 ExpressionAttributeValues={':m': 'flashcard'}
             )
-            send_message(
-                token, chat_id, "Flashcard mode on! Send me a file and I will show you key concepts.")
+            send_message(token, chat_id, "Flashcard mode on! Send me a file and I will show you key concepts.")
 
         elif text in ["Easy", "Medium", "Hard"]:
             table.update_item(
@@ -77,8 +73,7 @@ def handler(event, context):
                 UpdateExpression='SET difficulty = :d',
                 ExpressionAttributeValues={':d': text}
             )
-            send_message(
-                token, chat_id, f"Difficulty set to {text}! Now send me a file to start.")
+            send_message(token, chat_id, f"Difficulty set to {text}! Now send me a file to start.")
 
         elif text in ["English", "Amharic", "French"]:
             table.update_item(
@@ -86,8 +81,7 @@ def handler(event, context):
                 UpdateExpression='SET language = :l',
                 ExpressionAttributeValues={':l': text}
             )
-            send_message(
-                token, chat_id, f"Language set to {text}! Now send me a file to start.")
+            send_message(token, chat_id, f"Language set to {text}! Now send me a file to start.")
 
         elif text == "Yes!":
             response = table.get_item(Key={'chat_id': chat_id})
@@ -96,10 +90,10 @@ def handler(event, context):
             file_id = session.get('saved_file_id', '')
             file_name = session.get('saved_file_name', '')
             language = session.get('language', 'English')
+            previous_questions = session.get('questions', '[]')
 
             if waiting_for == 'medium_confirm':
-                send_message(
-                    token, chat_id, "Great! Generating Medium questions from the same file...")
+                send_message(token, chat_id, "Great! Generating Medium questions from the same file...")
                 sqs.send_message(
                     QueueUrl=QUEUE_URL,
                     MessageBody=json.dumps({
@@ -109,12 +103,12 @@ def handler(event, context):
                         "difficulty": "Medium",
                         "language": language,
                         "mode": "quiz",
-                        "total_score": int(session.get('total_score', 0))
+                        "total_score": int(session.get('total_score', 0)),
+                        "previous_questions": previous_questions
                     })
                 )
             elif waiting_for == 'hard_confirm':
-                send_message(
-                    token, chat_id, "Let's go! Generating Hard questions from the same file...")
+                send_message(token, chat_id, "Let's go! Generating Hard questions from the same file...")
                 sqs.send_message(
                     QueueUrl=QUEUE_URL,
                     MessageBody=json.dumps({
@@ -124,7 +118,8 @@ def handler(event, context):
                         "difficulty": "Hard",
                         "language": language,
                         "mode": "quiz",
-                        "total_score": int(session.get('total_score', 0))
+                        "total_score": int(session.get('total_score', 0)),
+                        "previous_questions": previous_questions
                     })
                 )
 
@@ -133,7 +128,7 @@ def handler(event, context):
             session = response.get('Item', {})
             total_score = int(session.get('total_score', 0))
             send_message(token, chat_id,
-                         f"No problem! Your total score so far: {total_score} points.\n\nSend me another file to start a new quiz!")
+                f"No problem! Your total score so far: {total_score} points.\n\nSend me another file to start a new quiz!")
 
         elif document:
             file_name = document.get("file_name", "file")
@@ -146,7 +141,7 @@ def handler(event, context):
             mode = settings.get('mode', 'quiz')
 
             send_message(token, chat_id,
-                         f"Got your file!\nDifficulty: {difficulty}\nLanguage: {language}\nMode: {mode}\n\nProcessing... I will send you questions shortly!")
+                f"Got your file!\nDifficulty: {difficulty}\nLanguage: {language}\nMode: {mode}\n\nProcessing... I will send you questions shortly!")
 
             sqs.send_message(
                 QueueUrl=QUEUE_URL,
@@ -157,7 +152,8 @@ def handler(event, context):
                     "difficulty": difficulty,
                     "language": language,
                     "mode": mode,
-                    "total_score": 0
+                    "total_score": 0,
+                    "previous_questions": "[]"
                 })
             )
 
@@ -168,8 +164,7 @@ def handler(event, context):
             session = response.get('Item')
 
             if not session or 'questions' not in session:
-                send_message(token, chat_id,
-                             "Please send me a file first to start a quiz!")
+                send_message(token, chat_id, "Please send me a file first to start a quiz!")
                 return {"statusCode": 200, "body": "OK"}
 
             questions = json.loads(session['questions'])
@@ -177,20 +172,22 @@ def handler(event, context):
             score = int(session.get('score', 0))
             question = questions[current]
             correct = question["answer"]
+            explanation = question["explanation"]
 
             if answer == correct:
                 score += 1
                 send_message(token, chat_id,
-                             f"Correct! Well done! 🎉\n\nScore so far: {score} out of {current + 1}")
+                    f"Correct! Well done! 🎉\n\nExplanation: {explanation}\n\nScore so far: {score} out of {current + 1}")
             else:
                 send_message(token, chat_id,
-                             f"Wrong! The correct answer is {correct}.\n\nExplanation: {question['explanation']}\n\nScore so far: {score} out of {current + 1}")
+                    f"Wrong! The correct answer is {correct}.\n\nExplanation: {explanation}\n\nScore so far: {score} out of {current + 1}")
 
             current += 1
 
             if current >= len(questions):
                 difficulty = session.get('difficulty', 'Easy')
                 total_score = int(session.get('total_score', 0)) + score
+                all_questions = session.get('questions', '[]')
 
                 if difficulty == 'Easy':
                     keyboard = {
@@ -199,18 +196,20 @@ def handler(event, context):
                         "resize_keyboard": True
                     }
                     send_message(token, chat_id,
-                                 f"Easy quiz complete! Your score is {score} out of {len(questions)}.\n\nReady to try Medium difficulty with the same file?",
-                                 reply_markup=json.dumps(keyboard))
+                        f"Easy quiz complete! Your score is {score} out of {len(questions)}.\n\nReady to try Medium difficulty with the same file?",
+                        reply_markup=json.dumps(keyboard))
                     table.update_item(
                         Key={'chat_id': chat_id},
-                        UpdateExpression='SET waiting_for = :w, total_score = :t, saved_file_id = :f, saved_file_name = :n',
+                        UpdateExpression='SET waiting_for = :w, total_score = :t, saved_file_id = :f, saved_file_name = :n, previous_questions = :p',
                         ExpressionAttributeValues={
                             ':w': 'medium_confirm',
                             ':t': total_score,
                             ':f': session.get('file_id', session.get('saved_file_id', '')),
-                            ':n': session.get('file_name', session.get('saved_file_name', ''))
+                            ':n': session.get('file_name', session.get('saved_file_name', '')),
+                            ':p': all_questions
                         }
                     )
+
                 elif difficulty == 'Medium':
                     keyboard = {
                         "keyboard": [[{"text": "Yes!"}, {"text": "No thanks"}]],
@@ -218,24 +217,38 @@ def handler(event, context):
                         "resize_keyboard": True
                     }
                     send_message(token, chat_id,
-                                 f"Medium quiz complete! Your score is {score} out of {len(questions)}.\n\nReady for the Hard difficulty challenge?",
-                                 reply_markup=json.dumps(keyboard))
+                        f"Medium quiz complete! Your score is {score} out of {len(questions)}.\n\nReady for the Hard difficulty challenge?",
+                        reply_markup=json.dumps(keyboard))
+                    
+                    existing_previous = session.get('previous_questions', '[]')
+                    try:
+                        prev_list = json.loads(existing_previous)
+                        curr_list = json.loads(all_questions)
+                        combined = json.dumps(prev_list + curr_list)
+                    except:
+                        combined = all_questions
+
                     table.update_item(
                         Key={'chat_id': chat_id},
-                        UpdateExpression='SET waiting_for = :w, total_score = :t',
+                        UpdateExpression='SET waiting_for = :w, total_score = :t, saved_file_id = :f, saved_file_name = :n, previous_questions = :p',
                         ExpressionAttributeValues={
                             ':w': 'hard_confirm',
-                            ':t': total_score
+                            ':t': total_score,
+                            ':f': session.get('file_id', session.get('saved_file_id', '')),
+                            ':n': session.get('file_name', session.get('saved_file_name', '')),
+                            ':p': combined
                         }
                     )
+
                 elif difficulty == 'Hard':
                     send_message(token, chat_id,
-                                 f"Hard quiz complete! Your score is {score} out of {len(questions)}.\n\nTotal score across all difficulties: {total_score} out of 30!\n\nAmazing work! Send me another file to start again.")
+                        f"Hard quiz complete! Your score is {score} out of {len(questions)}.\n\nTotal score across all difficulties: {total_score} out of 30!\n\nAmazing work! Send me another file to start again.")
                     table.update_item(
                         Key={'chat_id': chat_id},
-                        UpdateExpression='REMOVE questions, question_current, score, difficulty, total_score, waiting_for, saved_file_id, saved_file_name, mode',
+                        UpdateExpression='REMOVE questions, question_current, score, difficulty, total_score, waiting_for, saved_file_id, saved_file_name, mode, previous_questions',
                         ExpressionAttributeNames={}
                     )
+
             else:
                 table.update_item(
                     Key={'chat_id': chat_id},
@@ -251,8 +264,7 @@ def handler(event, context):
                 send_message(token, chat_id, text)
 
         else:
-            send_message(
-                token, chat_id, "Please send me a file to start a quiz!\n\nOr use:\n/difficulty - set difficulty\n/language - set language\n/flashcard - flashcard mode")
+            send_message(token, chat_id, "Please send me a file to start a quiz!\n\nOr use:\n/difficulty - set difficulty\n/language - set language\n/flashcard - flashcard mode")
 
     except Exception as e:
         print(f"Error: {str(e)}")
