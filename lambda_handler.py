@@ -62,7 +62,7 @@ def handler(event, context):
         elif text == "/flashcard":
             table.update_item(
                 Key={'chat_id': chat_id},
-                UpdateExpression='SET mode = :m',
+                UpdateExpression='SET quiz_mode = :m',
                 ExpressionAttributeValues={':m': 'flashcard'}
             )
             send_message(token, chat_id, "Flashcard mode on! Send me a file and I will show you key concepts.")
@@ -70,7 +70,7 @@ def handler(event, context):
         elif text in ["Easy", "Medium", "Hard"]:
             table.update_item(
                 Key={'chat_id': chat_id},
-                UpdateExpression='SET difficulty = :d',
+                UpdateExpression='SET quiz_difficulty = :d',
                 ExpressionAttributeValues={':d': text}
             )
             send_message(token, chat_id, f"Difficulty set to {text}! Now send me a file to start.")
@@ -78,7 +78,7 @@ def handler(event, context):
         elif text in ["English", "Amharic", "French"]:
             table.update_item(
                 Key={'chat_id': chat_id},
-                UpdateExpression='SET language = :l',
+                UpdateExpression='SET quiz_language = :l',
                 ExpressionAttributeValues={':l': text}
             )
             send_message(token, chat_id, f"Language set to {text}! Now send me a file to start.")
@@ -89,8 +89,8 @@ def handler(event, context):
             waiting_for = session.get('waiting_for', '')
             file_id = session.get('saved_file_id', '')
             file_name = session.get('saved_file_name', '')
-            language = session.get('language', 'English')
-            previous_questions = session.get('questions', '[]')
+            quiz_language = session.get('quiz_language', 'English')
+            previous_questions = session.get('previous_questions', '[]')
 
             if waiting_for == 'medium_confirm':
                 send_message(token, chat_id, "Great! Generating Medium questions from the same file...")
@@ -101,7 +101,7 @@ def handler(event, context):
                         "file_id": file_id,
                         "file_name": file_name,
                         "difficulty": "Medium",
-                        "language": language,
+                        "language": quiz_language,
                         "mode": "quiz",
                         "total_score": int(session.get('total_score', 0)),
                         "previous_questions": previous_questions
@@ -116,7 +116,7 @@ def handler(event, context):
                         "file_id": file_id,
                         "file_name": file_name,
                         "difficulty": "Hard",
-                        "language": language,
+                        "language": quiz_language,
                         "mode": "quiz",
                         "total_score": int(session.get('total_score', 0)),
                         "previous_questions": previous_questions
@@ -136,12 +136,12 @@ def handler(event, context):
 
             response = table.get_item(Key={'chat_id': chat_id})
             settings = response.get('Item', {})
-            difficulty = settings.get('difficulty', 'Easy')
-            language = settings.get('language', 'English')
-            mode = settings.get('mode', 'quiz')
+            difficulty = settings.get('quiz_difficulty', 'Easy')
+            quiz_language = settings.get('quiz_language', 'English')
+            mode = settings.get('quiz_mode', 'quiz')
 
             send_message(token, chat_id,
-                f"Got your file!\nDifficulty: {difficulty}\nLanguage: {language}\nMode: {mode}\n\nProcessing... I will send you questions shortly!")
+                f"Got your file!\nDifficulty: {difficulty}\nLanguage: {quiz_language}\nMode: {mode}\n\nProcessing... I will send you questions shortly!")
 
             sqs.send_message(
                 QueueUrl=QUEUE_URL,
@@ -150,7 +150,7 @@ def handler(event, context):
                     "file_id": file_id,
                     "file_name": file_name,
                     "difficulty": difficulty,
-                    "language": language,
+                    "language": quiz_language,
                     "mode": mode,
                     "total_score": 0,
                     "previous_questions": "[]"
@@ -185,7 +185,7 @@ def handler(event, context):
             current += 1
 
             if current >= len(questions):
-                difficulty = session.get('difficulty', 'Easy')
+                difficulty = session.get('quiz_difficulty', 'Easy')
                 total_score = int(session.get('total_score', 0)) + score
                 all_questions = session.get('questions', '[]')
 
@@ -219,7 +219,7 @@ def handler(event, context):
                     send_message(token, chat_id,
                         f"Medium quiz complete! Your score is {score} out of {len(questions)}.\n\nReady for the Hard difficulty challenge?",
                         reply_markup=json.dumps(keyboard))
-                    
+
                     existing_previous = session.get('previous_questions', '[]')
                     try:
                         prev_list = json.loads(existing_previous)
@@ -243,11 +243,7 @@ def handler(event, context):
                 elif difficulty == 'Hard':
                     send_message(token, chat_id,
                         f"Hard quiz complete! Your score is {score} out of {len(questions)}.\n\nTotal score across all difficulties: {total_score} out of 30!\n\nAmazing work! Send me another file to start again.")
-                    table.update_item(
-                        Key={'chat_id': chat_id},
-                        UpdateExpression='REMOVE questions, question_current, score, difficulty, total_score, waiting_for, saved_file_id, saved_file_name, mode, previous_questions',
-                        ExpressionAttributeNames={}
-                    )
+                    table.delete_item(Key={'chat_id': chat_id})
 
             else:
                 table.update_item(
@@ -256,7 +252,7 @@ def handler(event, context):
                     ExpressionAttributeValues={':c': current, ':s': score}
                 )
                 next_question = questions[current]
-                text = f"Question {current + 1} of {len(questions)} ({session.get('difficulty', 'Easy')}):\n\n"
+                text = f"Question {current + 1} of {len(questions)} ({session.get('quiz_difficulty', 'Easy')}):\n\n"
                 text += f"{next_question['question']}\n\n"
                 for option in next_question["options"]:
                     text += f"{option}\n"
