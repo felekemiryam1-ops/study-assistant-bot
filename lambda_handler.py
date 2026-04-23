@@ -22,6 +22,60 @@ def send_message(token, chat_id, text, reply_markup=None):
     urllib.request.urlopen(req)
 
 
+def main_menu():
+    return json.dumps({
+        "keyboard": [
+            [{"text": "📚 Start Quiz"}, {"text": "🃏 Flashcard Mode"}],
+            [{"text": "⚙️ Settings"}, {"text": "❓ Help"}]
+        ],
+        "resize_keyboard": True,
+        "persistent": True
+    })
+
+
+def settings_menu():
+    return json.dumps({
+        "keyboard": [
+            [{"text": "🎯 Difficulty"}, {"text": "🌍 Language"}],
+            [{"text": "📊 My Settings"}, {"text": "🏠 Main Menu"}]
+        ],
+        "resize_keyboard": True,
+        "persistent": True
+    })
+
+
+def difficulty_menu():
+    return json.dumps({
+        "keyboard": [
+            [{"text": "🟢 Easy"}, {"text": "🟡 Medium"}, {"text": "🔴 Hard"}],
+            [{"text": "🔙 Back to Settings"}]
+        ],
+        "resize_keyboard": True,
+        "persistent": True
+    })
+
+
+def language_menu():
+    return json.dumps({
+        "keyboard": [
+            [{"text": "🇬🇧 English"}, {"text": "🇪🇹 Amharic"}, {"text": "🇫🇷 French"}],
+            [{"text": "🔙 Back to Settings"}]
+        ],
+        "resize_keyboard": True,
+        "persistent": True
+    })
+
+
+def quiz_menu():
+    return json.dumps({
+        "keyboard": [
+            [{"text": "A"}, {"text": "B"}, {"text": "C"}, {"text": "D"}],
+        ],
+        "resize_keyboard": True,
+        "persistent": True
+    })
+
+
 def handler(event, context):
     try:
         token = os.environ["TELEGRAM_TOKEN"]
@@ -37,51 +91,132 @@ def handler(event, context):
 
         if text == "/start":
             send_message(token, chat_id,
-                "Hi! I am your Study Assistant bot.\n\nSend me a PDF, PowerPoint or Word file and I will generate 10 quiz questions from it!\n\nCommands:\n/difficulty - choose difficulty level\n/language - choose language\n/flashcard - flashcard mode")
+                "Hi! I am your Study Assistant Bot! 👋\n\nI will quiz you on any study material you send me.\n\nUse the menu below to get started!",
+                reply_markup=main_menu())
 
-        elif text == "/difficulty":
-            keyboard = {
-                "keyboard": [
-                    [{"text": "Easy"}, {"text": "Medium"}, {"text": "Hard"}]
-                ],
-                "one_time_keyboard": True,
-                "resize_keyboard": True
-            }
-            send_message(token, chat_id, "Choose your difficulty level:", reply_markup=json.dumps(keyboard))
+        elif text in ["📚 Start Quiz", "/quiz"]:
+            response = table.get_item(Key={'chat_id': chat_id})
+            settings = response.get('Item', {})
+            difficulty = settings.get('quiz_difficulty', 'Easy')
+            quiz_language = settings.get('quiz_language', 'English')
+            send_message(token, chat_id,
+                f"📚 Quiz Mode\n\nCurrent settings:\n🎯 Difficulty: {difficulty}\n🌍 Language: {quiz_language}\n\nNow send me your file — PDF, PowerPoint or Word!",
+                reply_markup=main_menu())
 
-        elif text == "/language":
-            keyboard = {
-                "keyboard": [
-                    [{"text": "English"}, {"text": "Amharic"}, {"text": "French"}]
-                ],
-                "one_time_keyboard": True,
-                "resize_keyboard": True
-            }
-            send_message(token, chat_id, "Choose your language:", reply_markup=json.dumps(keyboard))
-
-        elif text == "/flashcard":
+        elif text in ["🃏 Flashcard Mode", "/flashcard"]:
             table.update_item(
                 Key={'chat_id': chat_id},
                 UpdateExpression='SET quiz_mode = :m',
                 ExpressionAttributeValues={':m': 'flashcard'}
             )
-            send_message(token, chat_id, "Flashcard mode on! Send me a file and I will show you key concepts.")
+            send_message(token, chat_id,
+                "🃏 Flashcard Mode activated!\n\nSend me your file and I will create flashcards from it!",
+                reply_markup=main_menu())
 
-        elif text in ["Easy", "Medium", "Hard"]:
+        elif text in ["⚙️ Settings", "/settings"]:
+            response = table.get_item(Key={'chat_id': chat_id})
+            settings = response.get('Item', {})
+            difficulty = settings.get('quiz_difficulty', 'Easy')
+            quiz_language = settings.get('quiz_language', 'English')
+            mode = settings.get('quiz_mode', 'quiz')
+            send_message(token, chat_id,
+                f"⚙️ Settings\n\nCurrent settings:\n🎯 Difficulty: {difficulty}\n🌍 Language: {quiz_language}\n📖 Mode: {mode}\n\nWhat would you like to change?",
+                reply_markup=settings_menu())
+
+        elif text in ["🎯 Difficulty", "/difficulty"]:
+            send_message(token, chat_id,
+                "🎯 Choose your difficulty level:",
+                reply_markup=difficulty_menu())
+
+        elif text in ["🌍 Language", "/language"]:
+            send_message(token, chat_id,
+                "🌍 Choose your language:",
+                reply_markup=language_menu())
+
+        elif text in ["📊 My Settings"]:
+            response = table.get_item(Key={'chat_id': chat_id})
+            settings = response.get('Item', {})
+            difficulty = settings.get('quiz_difficulty', 'Easy')
+            quiz_language = settings.get('quiz_language', 'English')
+            mode = settings.get('quiz_mode', 'quiz')
+            send_message(token, chat_id,
+                f"📊 Your current settings:\n\n🎯 Difficulty: {difficulty}\n🌍 Language: {quiz_language}\n📖 Mode: {mode}",
+                reply_markup=settings_menu())
+
+        elif text in ["🏠 Main Menu"]:
+            send_message(token, chat_id,
+                "🏠 Main Menu",
+                reply_markup=main_menu())
+
+        elif text in ["🔙 Back to Settings"]:
+            send_message(token, chat_id,
+                "⚙️ Settings",
+                reply_markup=settings_menu())
+
+        elif text in ["❓ Help", "/help"]:
+            send_message(token, chat_id,
+                "❓ Help\n\n📚 Start Quiz — upload a file and get quizzed\n🃏 Flashcard Mode — get flashcards instead of quiz\n⚙️ Settings — change difficulty and language\n\n📁 Supported files:\n• PDF\n• PowerPoint (.pptx)\n• Word (.docx)\n\n🎯 Difficulty levels:\n• Easy — basic facts\n• Medium — understanding\n• Hard — tricky questions\n\n🌍 Languages:\n• English\n• Amharic (አማርኛ)\n• French\n\n💡 Tip: After Easy quiz, bot will offer Medium then Hard from the same file — 30 questions total!",
+                reply_markup=main_menu())
+
+        elif text in ["🟢 Easy", "Easy"]:
             table.update_item(
                 Key={'chat_id': chat_id},
                 UpdateExpression='SET quiz_difficulty = :d',
-                ExpressionAttributeValues={':d': text}
+                ExpressionAttributeValues={':d': 'Easy'}
             )
-            send_message(token, chat_id, f"Difficulty set to {text}! Now send me a file to start.")
+            send_message(token, chat_id,
+                "✅ Difficulty set to Easy!",
+                reply_markup=settings_menu())
 
-        elif text in ["English", "Amharic", "French"]:
+        elif text in ["🟡 Medium", "Medium"]:
+            table.update_item(
+                Key={'chat_id': chat_id},
+                UpdateExpression='SET quiz_difficulty = :d',
+                ExpressionAttributeValues={':d': 'Medium'}
+            )
+            send_message(token, chat_id,
+                "✅ Difficulty set to Medium!",
+                reply_markup=settings_menu())
+
+        elif text in ["🔴 Hard", "Hard"]:
+            table.update_item(
+                Key={'chat_id': chat_id},
+                UpdateExpression='SET quiz_difficulty = :d',
+                ExpressionAttributeValues={':d': 'Hard'}
+            )
+            send_message(token, chat_id,
+                "✅ Difficulty set to Hard!",
+                reply_markup=settings_menu())
+
+        elif text in ["🇬🇧 English", "English"]:
             table.update_item(
                 Key={'chat_id': chat_id},
                 UpdateExpression='SET quiz_language = :l',
-                ExpressionAttributeValues={':l': text}
+                ExpressionAttributeValues={':l': 'English'}
             )
-            send_message(token, chat_id, f"Language set to {text}! Now send me a file to start.")
+            send_message(token, chat_id,
+                "✅ Language set to English!",
+                reply_markup=settings_menu())
+
+        elif text in ["🇪🇹 Amharic", "Amharic"]:
+            table.update_item(
+                Key={'chat_id': chat_id},
+                UpdateExpression='SET quiz_language = :l',
+                ExpressionAttributeValues={':l': 'Amharic'}
+            )
+            send_message(token, chat_id,
+                "✅ Language set to Amharic! (አማርኛ)",
+                reply_markup=settings_menu())
+
+        elif text in ["🇫🇷 French", "French"]:
+            table.update_item(
+                Key={'chat_id': chat_id},
+                UpdateExpression='SET quiz_language = :l',
+                ExpressionAttributeValues={':l': 'French'}
+            )
+            send_message(token, chat_id,
+                "✅ Language set to French!",
+                reply_markup=settings_menu())
 
         elif text == "Yes!":
             response = table.get_item(Key={'chat_id': chat_id})
@@ -128,7 +263,8 @@ def handler(event, context):
             session = response.get('Item', {})
             total_score = int(session.get('total_score', 0))
             send_message(token, chat_id,
-                f"No problem! Your total score so far: {total_score} points.\n\nSend me another file to start a new quiz!")
+                f"No problem! Your total score so far: {total_score} points.\n\nSend me another file to start a new quiz!",
+                reply_markup=main_menu())
 
         elif document:
             file_name = document.get("file_name", "file")
@@ -141,7 +277,7 @@ def handler(event, context):
             mode = settings.get('quiz_mode', 'quiz')
 
             send_message(token, chat_id,
-                f"Got your file!\nDifficulty: {difficulty}\nLanguage: {quiz_language}\nMode: {mode}\n\nProcessing... I will send you questions shortly!")
+                f"Got your file! 📁\n\n🎯 Difficulty: {difficulty}\n🌍 Language: {quiz_language}\n📖 Mode: {mode}\n\nProcessing... I will send you questions shortly! ⏳")
 
             sqs.send_message(
                 QueueUrl=QUEUE_URL,
@@ -164,7 +300,9 @@ def handler(event, context):
             session = response.get('Item')
 
             if not session or 'questions' not in session:
-                send_message(token, chat_id, "Please send me a file first to start a quiz!")
+                send_message(token, chat_id,
+                    "Please send me a file first to start a quiz!",
+                    reply_markup=main_menu())
                 return {"statusCode": 200, "body": "OK"}
 
             questions = json.loads(session['questions'])
@@ -177,10 +315,12 @@ def handler(event, context):
             if answer == correct:
                 score += 1
                 send_message(token, chat_id,
-                    f"Correct! Well done! 🎉\n\nExplanation: {explanation}\n\nScore so far: {score} out of {current + 1}")
+                    f"Correct! Well done! 🎉\n\nExplanation: {explanation}\n\nScore so far: {score} out of {current + 1}",
+                    reply_markup=quiz_menu())
             else:
                 send_message(token, chat_id,
-                    f"Wrong! The correct answer is {correct}.\n\nExplanation: {explanation}\n\nScore so far: {score} out of {current + 1}")
+                    f"Wrong! The correct answer is {correct}.\n\nExplanation: {explanation}\n\nScore so far: {score} out of {current + 1}",
+                    reply_markup=quiz_menu())
 
             current += 1
 
@@ -190,14 +330,14 @@ def handler(event, context):
                 all_questions = session.get('questions', '[]')
 
                 if difficulty == 'Easy':
-                    keyboard = {
+                    keyboard = json.dumps({
                         "keyboard": [[{"text": "Yes!"}, {"text": "No thanks"}]],
                         "one_time_keyboard": True,
                         "resize_keyboard": True
-                    }
+                    })
                     send_message(token, chat_id,
-                        f"Easy quiz complete! Your score is {score} out of {len(questions)}.\n\nReady to try Medium difficulty with the same file?",
-                        reply_markup=json.dumps(keyboard))
+                        f"Easy quiz complete! 🎊\n\nYour score: {score} out of {len(questions)}\n\nReady to try Medium difficulty with the same file?",
+                        reply_markup=keyboard)
                     table.update_item(
                         Key={'chat_id': chat_id},
                         UpdateExpression='SET waiting_for = :w, total_score = :t, saved_file_id = :f, saved_file_name = :n, previous_questions = :p',
@@ -211,14 +351,14 @@ def handler(event, context):
                     )
 
                 elif difficulty == 'Medium':
-                    keyboard = {
+                    keyboard = json.dumps({
                         "keyboard": [[{"text": "Yes!"}, {"text": "No thanks"}]],
                         "one_time_keyboard": True,
                         "resize_keyboard": True
-                    }
+                    })
                     send_message(token, chat_id,
-                        f"Medium quiz complete! Your score is {score} out of {len(questions)}.\n\nReady for the Hard difficulty challenge?",
-                        reply_markup=json.dumps(keyboard))
+                        f"Medium quiz complete! 🎊\n\nYour score: {score} out of {len(questions)}\n\nReady for the Hard difficulty challenge?",
+                        reply_markup=keyboard)
 
                     existing_previous = session.get('previous_questions', '[]')
                     try:
@@ -242,7 +382,8 @@ def handler(event, context):
 
                 elif difficulty == 'Hard':
                     send_message(token, chat_id,
-                        f"Hard quiz complete! Your score is {score} out of {len(questions)}.\n\nTotal score across all difficulties: {total_score} out of 30!\n\nAmazing work! Send me another file to start again.")
+                        f"Hard quiz complete! 🏆\n\nYour score: {score} out of {len(questions)}\n\nTotal score across all difficulties: {total_score} out of 30!\n\nAmazing work! Send me another file to start again.",
+                        reply_markup=main_menu())
                     table.delete_item(Key={'chat_id': chat_id})
 
             else:
@@ -257,10 +398,12 @@ def handler(event, context):
                 for option in next_question["options"]:
                     text += f"{option}\n"
                 text += "\nReply with A, B, C or D"
-                send_message(token, chat_id, text)
+                send_message(token, chat_id, text, reply_markup=quiz_menu())
 
         else:
-            send_message(token, chat_id, "Please send me a file to start a quiz!\n\nOr use:\n/difficulty - set difficulty\n/language - set language\n/flashcard - flashcard mode")
+            send_message(token, chat_id,
+                "Use the menu below to get started! 👇",
+                reply_markup=main_menu())
 
     except Exception as e:
         print(f"Error: {str(e)}")
