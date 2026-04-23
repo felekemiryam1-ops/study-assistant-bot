@@ -51,7 +51,7 @@ For example:
     try:
         prev_list = json.loads(previous_questions)
         if prev_list:
-            prev_topics = [q.get('question', '')[:80] for q in prev_list[:10]]
+            prev_topics = [q.get('question', '')[:60] for q in prev_list[:5]]
             avoid_instruction = f"\n\nIMPORTANT: Generate completely NEW and DIFFERENT questions. Do NOT repeat these topics:\n" + "\n".join([f"- {t}" for t in prev_topics])
         else:
             avoid_instruction = ""
@@ -80,9 +80,10 @@ You MUST generate exactly 10 questions. No more, no less.
 Text:
 {text[:3000]}"""
 
+    max_tok = 4000 if difficulty == "Hard" else 3000
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=3000,
+        max_tokens=max_tok,
         messages=[{"role": "user", "content": prompt}]
     )
 
