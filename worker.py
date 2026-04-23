@@ -6,12 +6,15 @@ import boto3
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('study-assistant-sessions')
 
-def send_message(token, chat_id, text):
+def send_message(token, chat_id, text, reply_markup=None):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    data = json.dumps({
+    payload = {
         "chat_id": chat_id,
         "text": text
-    }).encode("utf-8")
+    }
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     urllib.request.urlopen(req)
 
@@ -28,6 +31,16 @@ def download_file(file_url, local_path):
     print(f"Downloading file to: {local_path}")
     urllib.request.urlretrieve(file_url, local_path)
     print("Download complete")
+
+def flashcard_menu():
+    return json.dumps({
+        "keyboard": [
+            [{"text": "👆 Flip Card"}],
+            [{"text": "⏭️ Skip"}, {"text": "🏠 Main Menu"}]
+        ],
+        "resize_keyboard": True,
+        "persistent": True
+    })
 
 def handler(event, context):
     print("Worker started")
@@ -47,12 +60,12 @@ def handler(event, context):
 
             print(f"Processing for chat_id: {chat_id}, difficulty: {difficulty}, language: {language}, mode: {mode}")
 
-            send_message(token, chat_id, "Downloading your file...")
+            send_message(token, chat_id, "⬇️ Downloading your file...")
             file_url = get_file_url(token, file_id)
             local_path = f"/tmp/{file_name}"
             download_file(file_url, local_path)
 
-            send_message(token, chat_id, "Extracting text...")
+            send_message(token, chat_id, "📖 Extracting text...")
             from extractor import extract_text
             text_content = extract_text(local_path)
             print(f"Extracted {len(text_content)} characters")
@@ -62,7 +75,7 @@ def handler(event, context):
                 continue
 
             if mode == "flashcard":
-                send_message(token, chat_id, "Generating flashcards...")
+                send_message(token, chat_id, "🃏 Generating flashcards...")
                 from quiz import generate_flashcards
                 flashcards = generate_flashcards(text_content, language)
 
@@ -74,18 +87,17 @@ def handler(event, context):
                     'chat_id': chat_id,
                     'flashcards': json.dumps(flashcards),
                     'flashcard_current': 0,
-                    'mode': 'flashcard'
+                    'mode': 'flashcard',
+                    'card_flipped': False
                 })
 
                 card = flashcards[0]
-                text = f"Flashcard 1 of {len(flashcards)}:\n\n"
-                text += f"CONCEPT: {card['concept']}\n\n"
-                text += f"EXPLANATION: {card['explanation']}\n\n"
-                text += "Type /next for next card or /quiz to switch to quiz mode"
-                send_message(token, chat_id, text)
+                send_message(token, chat_id,
+                    f"🃏 Flashcard 1 of {len(flashcards)}\n\n❓ {card['concept']}\n\nTap the button to flip the card and see the answer!",
+                    reply_markup=flashcard_menu())
 
             else:
-                send_message(token, chat_id, f"Generating {difficulty} questions in {language}...")
+                send_message(token, chat_id, f"🤖 Generating {difficulty} questions in {language}...")
                 from quiz import generate_questions
                 questions = generate_questions(text_content, difficulty, language, previous_questions)
                 print(f"Generated {len(questions)} questions")
@@ -99,9 +111,9 @@ def handler(event, context):
                     'questions': json.dumps(questions),
                     'question_current': 0,
                     'score': 0,
-                    'difficulty': difficulty,
-                    'language': language,
-                    'mode': 'quiz',
+                    'quiz_difficulty': difficulty,
+                    'quiz_language': language,
+                    'quiz_mode': 'quiz',
                     'file_id': file_id,
                     'file_name': file_name,
                     'total_score': total_score,
@@ -115,7 +127,13 @@ def handler(event, context):
                 for option in question["options"]:
                     text += f"{option}\n"
                 text += "\nReply with A, B, C or D"
-                send_message(token, chat_id, text)
+
+                quiz_menu = json.dumps({
+                    "keyboard": [[{"text": "A"}, {"text": "B"}, {"text": "C"}, {"text": "D"}]],
+                    "resize_keyboard": True,
+                    "persistent": True
+                })
+                send_message(token, chat_id, text, reply_markup=quiz_menu)
                 print("First question sent!")
 
         except Exception as e:

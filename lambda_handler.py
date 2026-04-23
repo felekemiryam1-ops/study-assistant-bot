@@ -69,7 +69,29 @@ def language_menu():
 def quiz_menu():
     return json.dumps({
         "keyboard": [
-            [{"text": "A"}, {"text": "B"}, {"text": "C"}, {"text": "D"}],
+            [{"text": "A"}, {"text": "B"}, {"text": "C"}, {"text": "D"}]
+        ],
+        "resize_keyboard": True,
+        "persistent": True
+    })
+
+
+def flashcard_menu():
+    return json.dumps({
+        "keyboard": [
+            [{"text": "👆 Flip Card"}],
+            [{"text": "⏭️ Skip"}, {"text": "🏠 Main Menu"}]
+        ],
+        "resize_keyboard": True,
+        "persistent": True
+    })
+
+
+def flashcard_next_menu():
+    return json.dumps({
+        "keyboard": [
+            [{"text": "➡️ Next Card"}],
+            [{"text": "🏠 Main Menu"}]
         ],
         "resize_keyboard": True,
         "persistent": True
@@ -110,7 +132,7 @@ def handler(event, context):
                 ExpressionAttributeValues={':m': 'flashcard'}
             )
             send_message(token, chat_id,
-                "🃏 Flashcard Mode activated!\n\nSend me your file and I will create flashcards from it!",
+                "🃏 Flashcard Mode activated!\n\nSend me your file and I will create flashcards from it!\n\nYou will see the concept first, then tap to flip and see the explanation!",
                 reply_markup=main_menu())
 
         elif text in ["⚙️ Settings", "/settings"]:
@@ -133,7 +155,7 @@ def handler(event, context):
                 "🌍 Choose your language:",
                 reply_markup=language_menu())
 
-        elif text in ["📊 My Settings"]:
+        elif text == "📊 My Settings":
             response = table.get_item(Key={'chat_id': chat_id})
             settings = response.get('Item', {})
             difficulty = settings.get('quiz_difficulty', 'Easy')
@@ -143,19 +165,19 @@ def handler(event, context):
                 f"📊 Your current settings:\n\n🎯 Difficulty: {difficulty}\n🌍 Language: {quiz_language}\n📖 Mode: {mode}",
                 reply_markup=settings_menu())
 
-        elif text in ["🏠 Main Menu"]:
+        elif text == "🏠 Main Menu":
             send_message(token, chat_id,
                 "🏠 Main Menu",
                 reply_markup=main_menu())
 
-        elif text in ["🔙 Back to Settings"]:
+        elif text == "🔙 Back to Settings":
             send_message(token, chat_id,
                 "⚙️ Settings",
                 reply_markup=settings_menu())
 
         elif text in ["❓ Help", "/help"]:
             send_message(token, chat_id,
-                "❓ Help\n\n📚 Start Quiz — upload a file and get quizzed\n🃏 Flashcard Mode — get flashcards instead of quiz\n⚙️ Settings — change difficulty and language\n\n📁 Supported files:\n• PDF\n• PowerPoint (.pptx)\n• Word (.docx)\n\n🎯 Difficulty levels:\n• Easy — basic facts\n• Medium — understanding\n• Hard — tricky questions\n\n🌍 Languages:\n• English\n• Amharic (አማርኛ)\n• French\n\n💡 Tip: After Easy quiz, bot will offer Medium then Hard from the same file — 30 questions total!",
+                "❓ Help\n\n📚 Start Quiz — upload a file and get quizzed\n🃏 Flashcard Mode — flip cards to learn concepts\n⚙️ Settings — change difficulty and language\n\n📁 Supported files:\n• PDF\n• PowerPoint (.pptx)\n• Word (.docx)\n\n🎯 Difficulty levels:\n• Easy — basic facts\n• Medium — understanding\n• Hard — tricky questions\n\n🌍 Languages:\n• English\n• Amharic (አማርኛ)\n• French\n\n💡 Tip: Set difficulty and language BEFORE sending your file!",
                 reply_markup=main_menu())
 
         elif text in ["🟢 Easy", "Easy"]:
@@ -164,9 +186,7 @@ def handler(event, context):
                 UpdateExpression='SET quiz_difficulty = :d',
                 ExpressionAttributeValues={':d': 'Easy'}
             )
-            send_message(token, chat_id,
-                "✅ Difficulty set to Easy!",
-                reply_markup=settings_menu())
+            send_message(token, chat_id, "✅ Difficulty set to Easy!", reply_markup=settings_menu())
 
         elif text in ["🟡 Medium", "Medium"]:
             table.update_item(
@@ -174,9 +194,7 @@ def handler(event, context):
                 UpdateExpression='SET quiz_difficulty = :d',
                 ExpressionAttributeValues={':d': 'Medium'}
             )
-            send_message(token, chat_id,
-                "✅ Difficulty set to Medium!",
-                reply_markup=settings_menu())
+            send_message(token, chat_id, "✅ Difficulty set to Medium!", reply_markup=settings_menu())
 
         elif text in ["🔴 Hard", "Hard"]:
             table.update_item(
@@ -184,9 +202,7 @@ def handler(event, context):
                 UpdateExpression='SET quiz_difficulty = :d',
                 ExpressionAttributeValues={':d': 'Hard'}
             )
-            send_message(token, chat_id,
-                "✅ Difficulty set to Hard!",
-                reply_markup=settings_menu())
+            send_message(token, chat_id, "✅ Difficulty set to Hard!", reply_markup=settings_menu())
 
         elif text in ["🇬🇧 English", "English"]:
             table.update_item(
@@ -194,9 +210,7 @@ def handler(event, context):
                 UpdateExpression='SET quiz_language = :l',
                 ExpressionAttributeValues={':l': 'English'}
             )
-            send_message(token, chat_id,
-                "✅ Language set to English!",
-                reply_markup=settings_menu())
+            send_message(token, chat_id, "✅ Language set to English!", reply_markup=settings_menu())
 
         elif text in ["🇪🇹 Amharic", "Amharic"]:
             table.update_item(
@@ -204,9 +218,7 @@ def handler(event, context):
                 UpdateExpression='SET quiz_language = :l',
                 ExpressionAttributeValues={':l': 'Amharic'}
             )
-            send_message(token, chat_id,
-                "✅ Language set to Amharic! (አማርኛ)",
-                reply_markup=settings_menu())
+            send_message(token, chat_id, "✅ Language set to Amharic! (አማርኛ)", reply_markup=settings_menu())
 
         elif text in ["🇫🇷 French", "French"]:
             table.update_item(
@@ -214,9 +226,77 @@ def handler(event, context):
                 UpdateExpression='SET quiz_language = :l',
                 ExpressionAttributeValues={':l': 'French'}
             )
+            send_message(token, chat_id, "✅ Language set to French!", reply_markup=settings_menu())
+
+        elif text == "👆 Flip Card":
+            response = table.get_item(Key={'chat_id': chat_id})
+            session = response.get('Item')
+
+            if not session or 'flashcards' not in session:
+                send_message(token, chat_id, "Please send me a file first!", reply_markup=main_menu())
+                return {"statusCode": 200, "body": "OK"}
+
+            flashcards = json.loads(session['flashcards'])
+            current = int(session.get('flashcard_current', 0))
+            card = flashcards[current]
+
             send_message(token, chat_id,
-                "✅ Language set to French!",
-                reply_markup=settings_menu())
+                f"🃏 Flashcard {current + 1} of {len(flashcards)}\n\n❓ {card['concept']}\n\n✅ Answer:\n{card['explanation']}",
+                reply_markup=flashcard_next_menu())
+
+        elif text == "➡️ Next Card":
+            response = table.get_item(Key={'chat_id': chat_id})
+            session = response.get('Item')
+
+            if not session or 'flashcards' not in session:
+                send_message(token, chat_id, "Please send me a file first!", reply_markup=main_menu())
+                return {"statusCode": 200, "body": "OK"}
+
+            flashcards = json.loads(session['flashcards'])
+            current = int(session.get('flashcard_current', 0)) + 1
+
+            if current >= len(flashcards):
+                send_message(token, chat_id,
+                    f"🎊 You completed all {len(flashcards)} flashcards!\n\nWant to take a quiz on the same material? Send the file again and choose Quiz mode!",
+                    reply_markup=main_menu())
+                table.delete_item(Key={'chat_id': chat_id})
+            else:
+                table.update_item(
+                    Key={'chat_id': chat_id},
+                    UpdateExpression='SET flashcard_current = :c',
+                    ExpressionAttributeValues={':c': current}
+                )
+                card = flashcards[current]
+                send_message(token, chat_id,
+                    f"🃏 Flashcard {current + 1} of {len(flashcards)}\n\n❓ {card['concept']}\n\nTap to flip and see the answer!",
+                    reply_markup=flashcard_menu())
+
+        elif text == "⏭️ Skip":
+            response = table.get_item(Key={'chat_id': chat_id})
+            session = response.get('Item')
+
+            if not session or 'flashcards' not in session:
+                send_message(token, chat_id, "Please send me a file first!", reply_markup=main_menu())
+                return {"statusCode": 200, "body": "OK"}
+
+            flashcards = json.loads(session['flashcards'])
+            current = int(session.get('flashcard_current', 0)) + 1
+
+            if current >= len(flashcards):
+                send_message(token, chat_id,
+                    f"🎊 You completed all {len(flashcards)} flashcards!",
+                    reply_markup=main_menu())
+                table.delete_item(Key={'chat_id': chat_id})
+            else:
+                table.update_item(
+                    Key={'chat_id': chat_id},
+                    UpdateExpression='SET flashcard_current = :c',
+                    ExpressionAttributeValues={':c': current}
+                )
+                card = flashcards[current]
+                send_message(token, chat_id,
+                    f"🃏 Flashcard {current + 1} of {len(flashcards)}\n\n❓ {card['concept']}\n\nTap to flip and see the answer!",
+                    reply_markup=flashcard_menu())
 
         elif text == "Yes!":
             response = table.get_item(Key={'chat_id': chat_id})
