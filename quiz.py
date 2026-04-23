@@ -4,7 +4,6 @@ import json
 
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-
 def generate_questions(text: str, difficulty: str = "Easy", language: str = "English", previous_questions: str = "[]") -> list:
     if difficulty == "Easy":
         difficulty_instruction = """Generate EASY questions.
@@ -32,11 +31,20 @@ def generate_questions(text: str, difficulty: str = "Easy", language: str = "Eng
 - Keep questions clear and concise"""
 
     if language == "Amharic":
-        language_instruction = """Generate everything in Amharic (አማርኛ). 
+        language_instruction = """Generate everything in Amharic (አማርኛ).
 Use natural, conversational Amharic that Ethiopians actually speak in daily life.
 Use the Ethiopic script (Ge'ez alphabet) throughout.
 Make the language warm, friendly and encouraging - like a teacher talking to a student.
-Avoid overly formal or academic Amharic. Use everyday spoken Amharic."""
+Avoid overly formal or academic Amharic. Use everyday spoken Amharic.
+IMPORTANT for medical/technical terms: Use the correct Amharic medical terminology.
+For example:
+- Dental caries/cavity = የጥርስ መበስበስ (NOT ሙስና which means corruption)
+- Tooth = ጥርስ
+- Pain = ህመም
+- Treatment = ህክምና
+- Infection = ኢንፌክሽን
+- When unsure of the correct Amharic medical term, keep the English term and add Amharic explanation
+- Never translate technical medical terms literally if it changes the meaning"""
     else:
         language_instruction = f"Generate everything in {language}."
 
@@ -44,8 +52,7 @@ Avoid overly formal or academic Amharic. Use everyday spoken Amharic."""
         prev_list = json.loads(previous_questions)
         if prev_list:
             prev_topics = [q.get('question', '')[:80] for q in prev_list[:10]]
-            avoid_instruction = f"\n\nIMPORTANT: Generate completely NEW and DIFFERENT questions. Do NOT repeat these topics:\n" + \
-                "\n".join([f"- {t}" for t in prev_topics])
+            avoid_instruction = f"\n\nIMPORTANT: Generate completely NEW and DIFFERENT questions. Do NOT repeat these topics:\n" + "\n".join([f"- {t}" for t in prev_topics])
         else:
             avoid_instruction = ""
     except:
@@ -75,7 +82,7 @@ Text:
 
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=2000,
+        max_tokens=3000,
         messages=[{"role": "user", "content": prompt}]
     )
 
@@ -90,7 +97,10 @@ def generate_flashcards(text: str, language: str = "English") -> list:
 Use natural, conversational Amharic that Ethiopians actually speak in daily life.
 Use the Ethiopic script (Ge'ez alphabet) throughout.
 Make the language warm, friendly and encouraging.
-Avoid overly formal Amharic. Use everyday spoken Amharic."""
+Avoid overly formal Amharic. Use everyday spoken Amharic.
+IMPORTANT for medical/technical terms: Use correct Amharic medical terminology.
+When unsure of the correct Amharic medical term, keep the English term and add Amharic explanation.
+Never translate technical medical terms literally if it changes the meaning."""
     else:
         language_instruction = f"Generate everything in {language}."
 
@@ -109,7 +119,7 @@ Text:
 
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=2000,
+        max_tokens=3000,
         messages=[{"role": "user", "content": prompt}]
     )
 
