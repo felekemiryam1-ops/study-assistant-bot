@@ -44,7 +44,8 @@ For example:
 - Treatment = ህክምና
 - Infection = ኢንፌክሽን
 - When unsure of the correct Amharic medical term, keep the English term and add Amharic explanation
-- Never translate technical medical terms literally if it changes the meaning"""
+- Never translate technical medical terms literally if it changes the meaning
+- Keep explanations SHORT to save space"""
     else:
         language_instruction = f"Generate everything in {language}."
 
@@ -72,15 +73,22 @@ B) option two
 C) option three
 D) option four
 Answer: A
-Explanation: explain why the answer is correct
+Explanation: short explanation why the answer is correct
 
 Separate each question with exactly one blank line.
 You MUST generate exactly 10 questions. No more, no less.
+Keep explanations SHORT — maximum 1 sentence.
 
 Text:
 {text[:3000]}"""
 
-    max_tok = 4000 if difficulty == "Hard" else 3000
+    if difficulty == "Hard" and language == "Amharic":
+        max_tok = 5000
+    elif difficulty == "Hard":
+        max_tok = 4000
+    else:
+        max_tok = 3000
+
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=max_tok,
@@ -150,7 +158,9 @@ def parse_questions(raw: str) -> list:
             elif line.startswith("Explanation:"):
                 explanation_line = line.replace("Explanation:", "").strip()
 
-        if question_line and len(options) == 4 and answer_line and explanation_line:
+        if question_line and len(options) == 4 and answer_line:
+            if not explanation_line:
+                explanation_line = "See the text for more details."
             questions.append({
                 "question": question_line,
                 "options": options,
