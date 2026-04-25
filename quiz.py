@@ -137,35 +137,64 @@ Medical text:
 
 def generate_flashcards(text: str, language: str = "English") -> list:
     if language == "Amharic":
-        language_instruction = """Generate in Amharic (አማርኛ) mixed with English medical terms.
-Use natural conversational Amharic that Ethiopian medical students actually speak.
-Use Ethiopic script for Amharic words.
+        language_instruction = """Generate everything in natural, professional Amharic (አማርኛ).
 Sound like a senior Ethiopian doctor teaching a junior student.
+Use the Ethiopic script (Ge'ez alphabet) throughout.
 
-GOLDEN RULE: Keep ALL medical terms in English.
-Mix English medical terms with Amharic explanation sentences.
+CRITICAL: Write in FULL NATURAL AMHARIC — not broken English mixed with Amharic.
+Ethiopian medical students are taught in English but think and communicate in Amharic.
+Your Amharic should feel natural and professional, like reading an Ethiopian medical textbook.
 
-Good example:
-"Avulsion ማለት ጥርሱ ሙሉ በሙሉ ከ socket ውጭ መውጣቱ ነው።
-በ30 ደቂቃ ውስጥ replant ካልተደረገ prognosis ይበላሻል።"
+CORRECT examples from real Ethiopian medical speech:
+- "የጥርስ ምርመራ ከማድረግዎ በፊት የታካሚውን የአእምሮ ሁኔታ ያረጋግጡ"
+- "ጥርሱ ከመንጋጋው ሶኬት ሙሉ በሙሉ ወልቋል"
+- "ደሙን ለማቆም በኃይል ይጫኑት"
+- "ኢንፌክሽኑ ወደ አካባቢው ህብረ ህዋሳት ተሰራጭቷል"
+- "ታካሚው አስቸኳይ ህክምና ያስፈልገዋል"
+- "ጭንቅላት ጉዳት ከጥርስ ጉዳት የባሰ ሊሆን ይችላል"
 
-Keep these ALWAYS in English:
-- All anatomical terms: pulp, socket, apex, root, crown
-- All conditions: avulsion, luxation, intrusion, extrusion, necrosis
-- All procedures: replantation, splinting, root canal, extraction
-- All investigations: X-ray, radiograph, vitality test
-- All medications: antibiotics, analgesics, fluoride
-
-Use Amharic for connecting words and explanations only.
-
-CORRECT Amharic words:
-- Tooth = ጥርስ (NOT ጥንት!)
+CORRECT Amharic medical vocabulary:
+- Tooth = ጥርስ (NEVER ጥንት which means ancient!)
+- Teeth = ጥርሶች
+- Gum = ድዳ
+- Jaw = መንጋጋ
+- Bone = አጥንት
+- Nerve = ነርቭ
+- Blood = ደም
+- Bleeding = ደም መፍሰስ
 - Pain = ህመም
-- Child = ልጅ
+- Swelling = እብጠት
+- Infection = ኢንፌክሽን (or ተህዋሲያን ኢንፌክሽን)
+- Tissue = ህብረ ህዋሳት
 - Treatment = ህክምና
+- Emergency = አስቸኳይ
 - Patient = ታካሚ
-- Bleeding = ደም መፍሰስ"""
+- Doctor = ሐኪም
+- Examination = ምርመራ
+- Diagnosis = ምርመራ ውጤት
+- Fracture = ስብራት
+- Displacement = መነቃነቅ
+- Socket = ሶኬት (acceptable to keep)
+- X-ray = ኤክስ ሬይ (keep in English)
+- Mental status = የአእምሮ ሁኔታ
+- Pressure = ጫና
+- Immediate = አፋጣኝ / አስቸኳይ
+- Surrounding = አካባቢ
+- Completely = ሙሉ በሙሉ
+- Primary teeth = የወተት ጥርሶች
+- Permanent teeth = ቋሚ ጥርሶች
+- Dental pulp = የጥርስ ልብ (the life/heart of the tooth)
+- Root = ሥር
+- Crown = ዘውድ
+- Incisor = ፊተኛ ጥርስ
+- Molar = ኋለኛ ጥርስ (back tooth)
 
+RULES:
+1. Write complete natural Amharic sentences
+2. Only keep English when there is truly no Amharic equivalent
+3. NEVER mix random English words into Amharic sentences
+4. Questions and options should all be in Amharic
+5. Explanations should be clear natural Amharic"""
     else:
         language_instruction = f"""Generate everything in {language}.
 This is for MEDICAL STUDENTS — use proper medical terminology.
