@@ -37,26 +37,47 @@ def generate_questions(
 - Keep questions clear and concise"""
 
     if language == "Amharic":
-        language_instruction = """Generate everything in Amharic (አማርኛ).
-Use natural, conversational Amharic that Ethiopians actually speak in daily life.
-Use the Ethiopic script (Ge'ez alphabet) throughout.
-Make the language warm, friendly and encouraging - like a teacher talking to a student.
-Avoid overly formal or academic Amharic. Use everyday spoken Amharic.
-IMPORTANT for medical/technical terms: Use the correct Amharic medical terminology.
-For example:
-- Dental caries/cavity = የጥርስ መበስበስ (NOT ሙስና which means corruption)
-- Tooth = ጥርስ
+        language_instruction = """Generate in Amharic (አማርኛ) mixed with English medical terms.
+Use natural conversational Amharic that Ethiopian medical students actually speak.
+Use Ethiopic script (Ge'ez alphabet) for Amharic words.
+Sound like a senior Ethiopian doctor teaching a junior student.
+
+GOLDEN RULE: Keep ALL medical terms in English — Ethiopian medical students 
+learn medicine in English. Mix English medical terms with Amharic explanation.
+
+Good example:
+"Pulp necrosis ማለት የጥርስ ውስጥ ያለው tissue መሞት ነው። 
+ይህ trauma ወይም infection ምክንያት ሊሆን ይችላል።"
+
+Keep these ALWAYS in English:
+- All anatomical terms: pulp, incisor, molar, canine, premolar
+- All procedures: root canal, extraction, crown, splint
+- All conditions: abscess, necrosis, luxation, avulsion, intrusion
+- All investigations: X-ray, CT scan, MRI, biopsy
+- All medications: antibiotics, analgesics, anesthesia
+- Specialties: orthodontics, endodontics, periodontics
+
+Use Amharic ONLY for:
+- Connecting words: ማለት, ነው, ይሆናል, ምክንያት, ስለዚህ
+- Common words: ህመም (pain), ደም (blood), ልጅ (child), ሐኪም (doctor)
+- Explanations and context
+
+CORRECT Amharic medical words when needed:
+- Tooth = ጥርስ (NOT ጥንት which means ancient!)
+- Gum = ድዳ
+- Jaw = መንጋጋ
+- Bone = አጥንት
 - Pain = ህመም
+- Bleeding = ደም መፍሰስ
+- Swelling = እብጠት
 - Treatment = ህክምና
-- Infection = ኢንፌክሽን
-- When unsure of the correct Amharic medical term, keep the English term and add Amharic explanation
-- Never translate technical medical terms literally if it changes the meaning
-- Keep explanations SHORT to save space
-- ONLY use Ethiopic script characters (Unicode range U+1200 to U+137F)
-- NEVER mix in Chinese, Japanese, Arabic or any other script
-- If you see yourself writing non-Ethiopic characters, stop and rewrite in pure Amharic"""
+- Patient = ታካሚ
+- Child = ልጅ"""
+
     else:
-        language_instruction = f"Generate everything in {language}."
+        language_instruction = f"""Generate everything in {language}.
+This is for MEDICAL STUDENTS — use proper medical terminology throughout.
+Questions should test clinical knowledge and understanding."""
 
     try:
         prev_list = json.loads(previous_questions)
@@ -71,7 +92,8 @@ For example:
     except:
         avoid_instruction = ""
 
-    prompt = f"""You are a friendly study assistant. Based on the following text, generate exactly 10 multiple choice questions.
+    prompt = f"""You are a friendly Ethiopian medical professor helping medical students study.
+Based on the following medical text, generate exactly 10 multiple choice questions.
 
 Difficulty instructions:
 {difficulty_instruction}
@@ -85,13 +107,14 @@ B) option two
 C) option three
 D) option four
 Answer: A
-Explanation: short explanation why the answer is correct
+Explanation: short clinical explanation why the answer is correct
 
 Separate each question with exactly one blank line.
 You MUST generate exactly 10 questions. No more, no less.
 Keep explanations SHORT — maximum 1 sentence.
+Use proper medical terminology throughout.
 
-Text:
+Medical text:
 {text[:3000]}"""
 
     if difficulty == "Hard" and language == "Amharic":
@@ -114,28 +137,55 @@ Text:
 
 def generate_flashcards(text: str, language: str = "English") -> list:
     if language == "Amharic":
-        language_instruction = """Generate everything in Amharic (አማርኛ).
-Use natural, conversational Amharic that Ethiopians actually speak in daily life.
-Use the Ethiopic script (Ge'ez alphabet) throughout.
-Make the language warm, friendly and encouraging.
-Avoid overly formal Amharic. Use everyday spoken Amharic.
-IMPORTANT for medical/technical terms: Use correct Amharic medical terminology.
-When unsure of the correct Amharic medical term, keep the English term and add Amharic explanation.
-Never translate technical medical terms literally if it changes the meaning."""
-    else:
-        language_instruction = f"Generate everything in {language}."
+        language_instruction = """Generate in Amharic (አማርኛ) mixed with English medical terms.
+Use natural conversational Amharic that Ethiopian medical students actually speak.
+Use Ethiopic script for Amharic words.
+Sound like a senior Ethiopian doctor teaching a junior student.
 
-    prompt = f"""You are a friendly study assistant. Based on the following text, generate 10 flashcards.
+GOLDEN RULE: Keep ALL medical terms in English.
+Mix English medical terms with Amharic explanation sentences.
+
+Good example:
+"Avulsion ማለት ጥርሱ ሙሉ በሙሉ ከ socket ውጭ መውጣቱ ነው።
+በ30 ደቂቃ ውስጥ replant ካልተደረገ prognosis ይበላሻል።"
+
+Keep these ALWAYS in English:
+- All anatomical terms: pulp, socket, apex, root, crown
+- All conditions: avulsion, luxation, intrusion, extrusion, necrosis
+- All procedures: replantation, splinting, root canal, extraction
+- All investigations: X-ray, radiograph, vitality test
+- All medications: antibiotics, analgesics, fluoride
+
+Use Amharic for connecting words and explanations only.
+
+CORRECT Amharic words:
+- Tooth = ጥርስ (NOT ጥንት!)
+- Pain = ህመም
+- Child = ልጅ
+- Treatment = ህክምና
+- Patient = ታካሚ
+- Bleeding = ደም መፍሰስ"""
+
+    else:
+        language_instruction = f"""Generate everything in {language}.
+This is for MEDICAL STUDENTS — use proper medical terminology.
+Explanations should be clinically accurate and educational."""
+
+    prompt = f"""You are a friendly Ethiopian medical professor helping medical students study.
+Based on the following medical text, generate 10 flashcards.
 
 Language: {language_instruction}
 
 Use this EXACT format for each flashcard:
-CONCEPT: concept name here
-EXPLANATION: detailed explanation here
+CONCEPT: medical concept or term here
+EXPLANATION: clear clinical explanation here
 
 Separate each flashcard with one blank line.
+Use proper medical terminology.
+Keep explanations concise but clinically accurate.
+Maximum 2 sentences per explanation.
 
-Text:
+Medical text:
 {text[:3000]}"""
 
     message = client.messages.create(
